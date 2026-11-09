@@ -1,0 +1,40 @@
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local compilation & runtime caches (TPU / XLA / vLLM / HuggingFace)
+.cache/
+tpu_compilation_cache/
+vllm_cache/
+xla_cache/
+
+# Cloned third-party repos on TPU VM (installed via scripts/bootstrap_tpu_vm.sh)
+third_party/
+
+# Large binary checkpoints, datasets, and raw multi-GB XPlane traces
+data/*.parquet
+checkpoints/
+*.safetensors
+*.pt
+*.pth
+*.bin
+*.xplane.pb
+*.xplane.pb.gz
+!tests/fixtures/*.xplane.pb
+
+# Ephemeral logs & locks
+logs/
+*.log
+/tmp/

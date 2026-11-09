@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zero-stall-tpu-grpo"
+version = "0.1.0"
+description = "Zero-Stall Asynchronous GRPO on Cloud TPU v7 (Ironwood / tpu7x) via Block-Scaled FP8 TPU Sync DMA and Bounded-Staleness Cross-Step KV Prefix Reuse"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Rabimba Karanjai", email = "rabimba@yahoo.com"}
+]
+dependencies = [
+    "torch>=2.7.0",
+    "numpy>=1.26.0",
+    "pyyaml>=6.0",
+    "pandas>=2.0.0",
+    "pyarrow>=14.0.0",
+    "matplotlib>=3.8.0",
+    "protobuf>=4.25.0",
+    "pytest>=8.0.0",
+]
+
+[project.optional-dependencies]
+tpu = [
+    "ray[default]>=2.50.0",
+    "datasets>=2.20.0",
+    "transformers>=4.50.0",
+    "tpu-info>=0.7.0",
+    "xprof>=2.18.0",
+    "tensorboard-plugin-profile>=2.18.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+markers = [
+    "tpu_hardware: requires attached Cloud TPU v7 (tpu7x) hardware",
+]

@@ -1,0 +1,94 @@
+# Canonical Experiment Matrix for Zero-Stall Asynchronous GRPO on Cloud TPU v7 (Ironwood / tpu7x)
+project_name: zero_stall_tpu_v7_grpo
+seed: 42
+
+defaults:
+  base_model: Qwen/Qwen3-4B-Base
+  scale_model: Qwen/Qwen3-8B-Base
+  dataset_name: gsm8k
+  train_parquet: data/gsm8k/train.parquet
+  val_parquet: data/gsm8k/test.parquet
+  math500_val_parquet: data/math500/test.parquet
+  train_batch_size: 32
+  ppo_mini_batch_size: 32
+  micro_batch_size_per_device: 2
+  rollout_n: 8
+  max_prompt_length: 512
+  max_response_length: 1024
+  pad_to_length_bucket: 512
+  learning_rate: 2.0e-6
+  lr_warmup_steps: 5
+  kl_loss_coef: 0.001
+  kl_loss_type: low_var_kl
+  clip_ratio_low: 0.2
+  clip_ratio_high: 0.2
+  clip_ratio_c: 3.0
+  tis_clip_min: 0.2
+  tis_clip_max: 3.0
+  xprof_steps: [5, 6, 7, 8]
+
+profiles:
+  phase1_smoke:
+    description: "Phase 1: 10-step stock VeRL + TorchTitan + vLLM-TorchTPU GRPO smoke gate"
+    total_steps: 10
+    val_freq: 5
+    val_before_train: true
+    enable_xprof: false
+    trainer_mode: separate_async
+    parameter_sync_step: 1
+    checkpoint_backend: tpu-sync
+    use_async_fp8_weights: false
+    enable_cross_step_kv_reuse: false
+    policy_loss_mode: bypass_mode
+
+  run1_sync_bf16_baseline:
+    description: "Phase 3 Run 1: Stock Synchronous BF16 VeRL TPU GRPO Baseline"
+    total_steps: 60
+    val_freq: 15
+    val_before_train: true
+    enable_xprof: true
+    trainer_mode: separate_async
+    parameter_sync_step: 1
+    checkpoint_backend: tpu-sync
+    use_async_fp8_weights: false
+    enable_cross_step_kv_reuse: false
+    policy_loss_mode: bypass_mode
+
+  run2_async_fp8_tpu_sync:
+    description: "Phase 3 Run 2: VeRL + Async BF16-to-FP8 Block-Scaled Weight Streaming via TPU Sync"
+    total_steps: 60
+    val_freq: 15
+    val_before_train: true
+    enable_xprof: true
+    trainer_mode: separate_async
+    parameter_sync_step: 1
+    checkpoint_backend: tpu-sync-fp8-async
+    use_async_fp8_weights: true
+    fp8_block_size: [128, 128]
+    enable_cross_step_kv_reuse: false
+    policy_loss_mode: bypass_mode
+
+  run3_zero_stall_kv_grpo:
+    description: "Phase 3 Run 3: VeRL + Async FP8 TPU Sync + Bounded-Staleness Cross-Step KV Prefix Reuse"
+    total_steps: 60
+    val_freq: 15
+    val_before_train: true
+    enable_xprof: true
+    trainer_mode: separate_async
+    parameter_sync_step: 1
+    checkpoint_backend: tpu-sync-fp8-async
+    use_async_fp8_weights: true
+    fp8_block_size: [128, 128]
+    enable_cross_step_kv_reuse: true
+    kv_kl_delta: 0.02
+    kv_max_staleness_steps: 4
+    kv_block_size_tokens: 16
+    vllm_scheduler_cls: "vllm_torchtpu.core.prefix_aware_scheduler.PrefixAwareScheduler"
+    vllm_kv_connector: "TPURaidenOffloadingConnector"
+    policy_loss_mode: cross_step_kv_grpo
+
+kl_sensitivity_sweep:
+  steps_per_point: 30
+  val_freq: 15
+  delta_values: [0.0, 0.005, 0.01, 0.02, 0.05, 0.10]
+  max_staleness_steps: 4
